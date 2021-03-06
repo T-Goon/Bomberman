@@ -13,7 +13,8 @@ sys.path.insert(1, '../group20')
 #from testcharacter import TestCharacter
 
 # Uncomment this if you want the interactive character
-from interactivecharacter import InteractiveCharacter
+# from interactivecharacter import InteractiveCharacter
+from jadoncharacter import JadonCharacter
 
 # Create the game
 g = Game.fromfile('map.txt')
@@ -27,7 +28,12 @@ g = Game.fromfile('map.txt')
 # ))
 
 # Uncomment this if you want the interactive character
-g.add_character(InteractiveCharacter("me", # name
+# g.add_character(InteractiveCharacter("me", # name
+#                                      "C",  # avatar
+#                                      0, 0  # position
+# ))
+
+g.add_character(JadonCharacter("me", # name
                                      "C",  # avatar
                                      0, 0  # position
 ))
