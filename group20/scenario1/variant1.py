@@ -14,7 +14,7 @@ sys.path.insert(1, '../group20')
 
 # Uncomment this if you want the interactive character
 # from interactivecharacter import InteractiveCharacter
-from jadoncharacter import JadonCharacter
+from s1v1Char import Character
 
 # Create the game
 g = Game.fromfile('map.txt')
@@ -33,7 +33,7 @@ g = Game.fromfile('map.txt')
 #                                      0, 0  # position
 # ))
 
-g.add_character(JadonCharacter("me", # name
+g.add_character(Character("me", # name
                                      "C",  # avatar
                                      0, 0  # position
 ))

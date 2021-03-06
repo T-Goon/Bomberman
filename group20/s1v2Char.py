@@ -23,11 +23,11 @@ class Character(CharacterEntity):
         if math.sqrt((m.x - self.x)**2 + (m.y - self.y)**2) > 3:
             path = self.astar(wrld)
 
-            meloc = self.findme(wrld)
+            meloc = next(iter(wrld.characters.values()))[0]
 
             #Find direction of movement
-            dx = path[1][0] - meloc[0]
-            dy = path[1][1] - meloc[1]
+            dx = path[1][0] - meloc.x
+            dy = path[1][1] - meloc.y
 
             self.move(dx, dy)
         else:
@@ -174,14 +174,15 @@ class Character(CharacterEntity):
         return -math.sqrt((wrld.exitcell[0] - c.x)**2 + (wrld.exitcell[1] - c.y)**2)
 
     def astar(self, wrld):
-        start = self.findme(wrld)
+        c = next(iter(wrld.characters.values()))[0]
+        start = (c.x, c.y)
         frontier = queue.PriorityQueue()
         frontier.put(start, 0)
         came_from = dict()
         cost_so_far = dict()
         came_from[start] = None
         cost_so_far[start] = 0
-        goal = self.getgoal(wrld)
+        goal = wrld.exitcell
 
         while not frontier.empty():
             current = frontier.get()
@@ -193,19 +194,14 @@ class Character(CharacterEntity):
                     current = came_from[current]
                 return path
 
-            for next in self.neighbors(current, wrld):
-                new_cost = cost_so_far[current] + self.cost(current, next, wrld)
-                if next not in cost_so_far or new_cost < cost_so_far[next]:
-                    cost_so_far[next] = new_cost
-                    priority = new_cost + self.heuristic(goal, next, wrld)
-                    frontier.put(next, priority)
-                    came_from[next] = current
+            for nextm in self.neighbors(current, wrld):
+                new_cost = cost_so_far[current] + self.cost(current, nextm, wrld)
+                if nextm not in cost_so_far or new_cost < cost_so_far[nextm]:
+                    cost_so_far[nextm] = new_cost
+                    priority = new_cost + self.heuristic(goal, nextm, wrld)
+                    frontier.put(nextm, priority)
+                    came_from[nextm] = current
 
-    def getgoal(self, wrld):
-        for x in range (0, wrld.width()):
-            for y in range (0, wrld.height()):
-                if wrld.exit_at(x, y):
-                    return x, y
 
     def heuristic(self, goal, next, wrld):
         return 0
@@ -230,9 +226,3 @@ class Character(CharacterEntity):
             return float('inf')
         else:
             return 1
-
-    def findme(self, wrld):
-        for x in range (0, wrld.width()):
-            for y in range (0, wrld.height()):
-                if wrld.characters_at(x, y):
-                    return x, y
