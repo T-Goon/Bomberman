@@ -281,7 +281,11 @@ class Character(CharacterEntity):
                     came_from[nextm] = current
 
     def heuristic(self, goal, next, wrld):
-        return 0
+        dx = abs(next[0] - goal[0])
+        dy = abs(next[1] - goal[1])
+
+        #Euclidean distance
+        return math.sqrt(dx * dx + dy * dy)
 
     def neighbors(self, current, wrld):
         neighbors = []
