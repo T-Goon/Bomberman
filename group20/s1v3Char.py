@@ -33,6 +33,7 @@ class Character(CharacterEntity):
             # far enough away to just use A*
             path = self.astar(wrld)
 
+            # Find location of our character
             meloc = next(iter(wrld.characters.values()))[0]
 
             # Find direction of movement
@@ -251,8 +252,11 @@ class Character(CharacterEntity):
         dist_e = math.sqrt((wrld.exitcell[0] - c.x) ** 2 + (wrld.exitcell[1] - c.y) ** 2)
         return -dist_e
 
+    # Do a* search
+    # PARAM [World] wrld The initial World object to start the a* with
+    # RETURN [int, (int, int)] the path (list of (x,y) tuples) in order from source to destination
     def astar(self, wrld):
-        c = next(iter(wrld.characters.values()))[0]
+        c = next(iter(wrld.characters.values()))[0]  # find our character
         start = (c.x, c.y)
         frontier = queue.PriorityQueue()
         frontier.put(start, 0)
@@ -262,9 +266,11 @@ class Character(CharacterEntity):
         cost_so_far[start] = 0
         goal = wrld.exitcell
 
+        # While we still have stuff in prio. queue, grab one
         while not frontier.empty():
             current = frontier.get()
 
+            # If we found our goal, find path from source to destination and return path
             if current == goal:
                 path = [current]
                 while came_from[current] != None:
@@ -272,21 +278,31 @@ class Character(CharacterEntity):
                     current = came_from[current]
                 return path
 
-            for nextm in self.neighbors(current, wrld):
-                new_cost = cost_so_far[current] + self.cost(current, nextm, wrld)
-                if nextm not in cost_so_far or new_cost < cost_so_far[nextm]:
-                    cost_so_far[nextm] = new_cost
-                    priority = new_cost + self.heuristic(goal, nextm, wrld)
-                    frontier.put(nextm, priority)
-                    came_from[nextm] = current
+            # If we didn't find goal, look around at all neighbors and add unvisited nodes to frontier
+            for nextmove in self.neighbors(current, wrld):
+                new_cost = cost_so_far[current] + self.cost(nextmove, wrld)
+                if nextmove not in cost_so_far or new_cost < cost_so_far[nextmove]:
+                    cost_so_far[nextmove] = new_cost
+                    priority = new_cost + self.heuristic(goal, nextmove)
+                    frontier.put(nextmove, priority)
+                    came_from[nextmove] = current
 
-    def heuristic(self, goal, next, wrld):
-        dx = abs(next[0] - goal[0])
-        dy = abs(next[1] - goal[1])
+    # Heuristic for a* algorithm
+    # PARAM [int, int] goal x, y coordinates of exit
+    # PARAM [int, int] m x, y coordinates of the next move (the one we are calculating heuristic for)
+    # RETURN [int] the heuristic cost of the move m to goal
+    def heuristic(self, goal, m):
 
-        #Euclidean distance
+        dx = abs(m[0] - goal[0])  # delta x from next move to goal
+        dy = abs(m[1] - goal[1])  # delta y from next move to goal
+
+        # Euclidean distance
         return math.sqrt(dx * dx + dy * dy)
 
+    # Neighbor function for a* algorithm
+    # PARAM [int, int] current x, y coordinates of current node location (not character location)
+    # PARAM [World] wrld The initial World object to calculate cost with
+    # RETURN [int, (int, int)] list of neighbor node coordinates
     def neighbors(self, current, wrld):
         neighbors = []
         for dx in [-1, 0, 1]:
@@ -301,7 +317,11 @@ class Character(CharacterEntity):
                             neighbors.append((current[0] + dx, current[1] + dy))
         return neighbors
 
-    def cost(self, current, nextm, wrld):
+    # Cost function for a* algorithm
+    # PARAM [int, int] nextm x, y coordinates of the next move (the one we are calculating cost for)
+    # PARAM [World] wrld The initial World object to calculate cost with
+    # RETURN [int] the real cost of the next move
+    def cost(self, nextm, wrld):
         m = next(iter(wrld.monsters.values()))[0]
         if (nextm[0] == m.x or nextm[0] == m.x - 1 or nextm[0] == m.x + 1) and (nextm[1] == m.y or nextm[1] == m.y - 1 or nextm[1] == m.y + 1):
             return float('inf')

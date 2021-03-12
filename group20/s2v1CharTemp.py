@@ -66,11 +66,13 @@ class Character(CharacterEntity):
             if bomb == 1:
                 self.place_bomb()
         else:
+            # Find path using a*
             path = self.astar(wrld)
 
+            # Find location of our character
             meloc = next(iter(wrld.characters.values()))[0]
 
-            #Find direction of movement
+            # Find direction of movement
             dx = path[1][0] - meloc.x
             dy = path[1][1] - meloc.y
 
@@ -512,8 +514,7 @@ class Character(CharacterEntity):
                     return -1000/depth
 
             # character escaped, good state
-            if (e.tpe == Event.CHARACTER_FOUND_EXIT or
-            e.tpe == Event.BOMB_HIT_MONSTER):
+            if (e.tpe == Event.CHARACTER_FOUND_EXIT):
                     return 1000/depth
 
         c = next(iter(wrld.characters.values()))[0]
@@ -533,8 +534,11 @@ class Character(CharacterEntity):
         
         return -dist_e
 
+    # Do a* search
+    # PARAM [World] wrld The initial World object to start the a* with
+    # RETURN [int, (int, int)] the path (list of (x,y) tuples) in order from source to destination
     def astar(self, wrld):
-        c = next(iter(wrld.characters.values()))[0]
+        c = next(iter(wrld.characters.values()))[0]  # find our character
         start = (c.x, c.y)
         frontier = queue.PriorityQueue()
         frontier.put(start, 0)
@@ -544,9 +548,11 @@ class Character(CharacterEntity):
         cost_so_far[start] = 0
         goal = wrld.exitcell
 
+        # While we still have stuff in prio. queue, grab one
         while not frontier.empty():
             current = frontier.get()
 
+            # If we found our goal, find path from source to destination and return path
             if current == goal:
                 path = [current]
                 while came_from[current] != None:
@@ -554,19 +560,63 @@ class Character(CharacterEntity):
                     current = came_from[current]
                 return path
 
-            for nextm in self.neighbors(current, wrld):
-                new_cost = cost_so_far[current] + self.cost(current, nextm, wrld)
-                if nextm not in cost_so_far or new_cost < cost_so_far[nextm]:
-                    cost_so_far[nextm] = new_cost
-                    priority = new_cost + self.heuristic(wrld)
-                    frontier.put(nextm, priority)
-                    came_from[nextm] = current
+            # If we didn't find goal, look around at all neighbors and add unvisited nodes to frontier
+            for nextmove in self.neighbors(current, wrld):
+                new_cost = cost_so_far[current] + self.cost(nextmove, wrld)
+                if nextmove not in cost_so_far or new_cost < cost_so_far[nextmove]:
+                    cost_so_far[nextmove] = new_cost
+                    priority = new_cost + self.heuristic(goal, nextmove)
+                    frontier.put(nextmove, priority)
+                    came_from[nextmove] = current
 
 
-    def heuristic(self, wrld):
-        c = next(iter(wrld.characters.values()))[0]
-        return math.sqrt((wrld.exitcell[0] - c.x)**2 + (wrld.exitcell[1] - c.y)**2)
+    # Heuristic for a* algorithm
+    # PARAM [int, int] goal x, y coordinates of exit
+    # PARAM [int, int] m x, y coordinates of the next move (the one we are calculating heuristic for)
+    # RETURN [int] the heuristic cost of the move m to goal
+    def heuristic(self, goal, m):
 
+        dx = abs(m[0] - goal[0])  # delta x from next move to goal
+        dy = abs(m[1] - goal[1])  # delta y from next move to goal
+
+        # Euclidean distance
+        return math.sqrt(dx * dx + dy * dy)
+
+    # Cost function for a* algorithm
+    # PARAM [int, int] nextm x, y coordinates of the next move (the one we are calculating cost for)
+    # PARAM [World] wrld The initial World object to calculate cost with
+    # RETURN [int] the real cost of the next move
+    def cost(self, nextm, wrld):
+        if wrld.wall_at(nextm[0], nextm[1]):
+            return 12
+        elif wrld.explosion_at(nextm[0], nextm[1]):
+            return float('inf')
+
+        try:
+            b = next(iter(wrld.bombs.values()))[0]
+
+            dist_b = math.sqrt((b.x - nextm[0])**2 + (b.y - nextm[1])**2)
+
+            if(b.timer == 0 and 
+                (b.x == nextm[0] or b.y == nextm[1]) and
+                dist_b <= 4):
+                return float('inf')
+        except:
+            pass
+
+        try:
+            m = next(iter(wrld.monsters.values()))[0]
+            if math.sqrt((nextm[0] - m.x)**2 + (nextm[1] - m.y)**2) < 4.3:
+                return float('inf')
+        except:
+            pass
+        
+        return 1
+
+    # Neighbor function for a* algorithm
+    # PARAM [int, int] current x, y coordinates of current node location (not character location)
+    # PARAM [World] wrld The initial World object to calculate cost with
+    # RETURN [int, (int, int)] list of neighbor node coordinates
     def neighbors(self, current, wrld):
         neighbors = []
         for dx in [-1, 0, 1]:
@@ -580,33 +630,3 @@ class Character(CharacterEntity):
                         if (current[1] + dy >= 0) and (current[1] + dy < wrld.height()):
                             neighbors.append((current[0] + dx, current[1] + dy))
         return neighbors
-
-
-    def cost(self, current, n, wrld):
-        
-        if wrld.wall_at(n[0], n[1]):
-            return 12
-        elif wrld.explosion_at(n[0], n[1]):
-            return float('inf')
-
-        try:
-            b = next(iter(wrld.bombs.values()))[0]
-
-            dist_b = math.sqrt((b.x - n[0])**2 + (b.y - n[1])**2)
-
-            if(b.timer == 0 and 
-                (b.x == n[0] or b.y == n[1]) and 
-                dist_b <= 4):
-                return float('inf')
-        except:
-            pass
-
-        try:
-            m = next(iter(wrld.monsters.values()))[0]
-            if math.sqrt((n[0] - m.x)**2 + (n[1] - m.y)**2) < 4.3:
-                return float('inf')
-        except:
-            pass
-        
-        return 1
-            
