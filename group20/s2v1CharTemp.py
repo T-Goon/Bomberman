@@ -69,12 +69,9 @@ class Character(CharacterEntity):
             # Find path using a*
             path = self.astar(wrld)
 
-            # Find location of our character
-            meloc = next(iter(wrld.characters.values()))[0]
-
             # Find direction of movement
-            dx = path[1][0] - meloc.x
-            dy = path[1][1] - meloc.y
+            dx = path[1][0] - self.x
+            dy = path[1][1] - self.y
 
             self.move(dx, dy)
 

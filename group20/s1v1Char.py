@@ -14,12 +14,9 @@ class Character(CharacterEntity):
         # Find path using a*
         path = self.astar(wrld)
 
-        # Find location of our character
-        meloc = next(iter(wrld.characters.values()))[0]
-
         # Find direction of movement
-        dx = path[1][0] - meloc.x
-        dy = path[1][1] - meloc.y
+        dx = path[1][0] - self.x
+        dy = path[1][1] - self.y
 
         self.move(dx, dy)
 
@@ -77,7 +74,7 @@ class Character(CharacterEntity):
     def cost(self, nextm, wrld):
         # All movement is the same cost (1) unless it is a wall (inf)
         if wrld.wall_at(nextm[0], nextm[1]):
-            return float('inf')
+            return 12  # bomb timer + explosion time
         else:
             return 1
 

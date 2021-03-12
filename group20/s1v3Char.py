@@ -3,7 +3,6 @@
 import math
 import sys
 import queue
-
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
@@ -12,64 +11,88 @@ from colorama import Fore, Back
 
 from events import Event
 
-
 class Character(CharacterEntity):
 
     def __init__(self, name, avatar, x, y, max_depth):
         super().__init__(name, avatar, x, y)
+
+        # max depth of the minimax search
         self.max_depth = max_depth
 
     def do(self, wrld):
-        dist_m = float('inf')
 
+        # Calculate distance to the monster
         try:
             m = next(iter(wrld.monsters.values()))[0]
-            dist_m = math.sqrt((m.x - self.x) ** 2 + (m.y - self.y) ** 2)
-        except:
-            pass
 
-        # calc distance from character to monster
-        if dist_m > 3:
-            # far enough away to just use A*
+            dist_m = math.sqrt((m.x - self.x)**2 + (m.y - self.y)**2)
+        except Exception as e:
+            dist_m = float('inf')
+
+
+        b = wrld.bombs.values()
+        ex = wrld.explosions.values()
+
+        # use minimax to aviod monster, death, and make some progress
+        if(dist_m < 3 or len(b) > 0 or len(ex) > 0):
+            dx, dy = self.minimax(wrld)
+
+            self.move(dx, dy)
+
+            # place a bomb if a monster is in range
+            if dist_m < 5:
+                self.place_bomb()
+        else:
+            # Find path using a*
             path = self.astar(wrld)
 
-            # Find location of our character
-            meloc = next(iter(wrld.characters.values()))[0]
-
             # Find direction of movement
-            dx = path[1][0] - meloc.x
-            dy = path[1][1] - meloc.y
+            dx = path[1][0] - self.x
+            dy = path[1][1] - self.y
+
+            # Find first wall in path
+            wall = None
+            for i in range(1, len(path)):
+                if wrld.wall_at(path[i][0], path[i][1]):
+                    wall = (path[i][0], path[i][1])
+                    break
 
             self.move(dx, dy)
-        else:
-            # use expectimax to aviod monster and make some progress
-            dx, dy, bomb = self.expectimax(wrld)
 
-            self.move(dx, dy)
+            # wall in your path is in range of a bomb
+            try:
+                if (math.sqrt((wall[0] - self.x)**2 + (wall[1] - self.y)**2) <= 4 and
+                    (wall[0] == self.x or wall[1] == self.y)):
+                    self.place_bomb()
+            except:
+                pass
 
-    # Do expectimax search
-    # PARAM [World] wrld The initial World object to start the expectimax with
-    # RETURN [int, int] x and y values for the action to take
-    def expectimax(self, wrld):
+            # place a bomb if there is a wall in your path
+            if(wrld.wall_at(self.x + dx, self.y + dy)):
+                self.place_bomb()
+
+    # Do minimax search
+    # PARAM [World] wrld The initial World object to start the minimax with
+    # RETURN [int, (int, int)] The score and x and y values for the action to take
+    def minimax(self, wrld):
 
         c = next(iter(wrld.characters.values()))[0]
 
         xmax = 0
         ymax = 0
-        bomb = 0
         max = float('-inf')
 
         for dx in [-1, 0, 1]:
             # Avoid out-of-bound indexing
-            if (c.x + dx >= 0) and (c.x + dx < wrld.width()):
+            if (c.x+dx >= 0) and (c.x+dx < wrld.width()):
                 # Loop through delta y
                 for dy in [-1, 0, 1]:
                     # Make sure the character is moving
                     if (dx != 0) or (dy != 0):
                         # Avoid out-of-bound indexing
-                        if (c.y + dy >= 0) and (c.y + dy < wrld.height()):
+                        if (c.y+dy >=0) and (c.y+dy < wrld.height()):
                             # No need to check impossible moves
-                            if not wrld.wall_at(c.x + dx, c.y + dy):  # and not wrld.explosion_at(m.x+dx, m.y+dy):
+                            if not wrld.wall_at(c.x+dx, c.y+dy):# and not wrld.explosion_at(m.x+dx, m.y+dy):
                                 # Set move in wrld
                                 c.move(dx, dy)
 
@@ -80,75 +103,35 @@ class Character(CharacterEntity):
 
                                     newwrld, events = wrld.next()
 
-                                    val = self.exp_value(newwrld, 1)
+                                    # Calculate min node
+                                    val = self.min_value(newwrld, float('-inf'), float('inf'), 1)
 
+                                    # argmax
                                     if val > max:
                                         max = val
                                         xmax = dx
                                         ymax = dy
-                                        bomb = i
 
-        return xmax, ymax, bomb
 
-    # Calculate chance node for expectimax
-    # PARAM [World] wrld The World object to calculate the chance node on
-    # PARAM [list] events List of events that happend in the world
-    # PARAM [int] depth Current depth of the expectimax
-    # PARAM [(int, int)] old_action Action that was taken to get to this world state
-    # RETURN [int, (int, int)] A score for the world and an action to take
-    #      Chance node does not choose actions. Always return old_action for the action.
-    def exp_value(self, wrld, depth):
+        return xmax, ymax
 
+    # Return the max value of a world state and the action to get to that world state.
+    # PARAM [World] board: the current world state
+    # PARAM [int] a: alpha value
+    # PARAM [int] b: beta value
+    # PARAM [int] depth: max depth of the search
+    # RETURN [int]: max score of the min nodes
+    def max_value(self, wrld, a, b, depth):
+        """The maxvalue function for alpha beta search algorithm."""
+
+        # Game is over or search is at max depth
         if self.game_over(wrld.events) or depth == self.max_depth:
-            return self.eval_state(wrld, depth)
-
-        v = 0
-
-        m = next(iter(wrld.monsters.values()))[0]
-        #
-        # Go through the possible 8-moves of the monster
-        #
-        # Loop through delta x
-        for dx in [-1, 0, 1]:
-            # Avoid out-of-bound indexing
-            if (m.x + dx >= 0) and (m.x + dx < wrld.width()):
-                # Loop through delta y
-                for dy in [-1, 0, 1]:
-                    # Make sure the monster is moving
-                    if (dx != 0) or (dy != 0):
-                        # Avoid out-of-bound indexing
-                        if (m.y + dy >= 0) and (m.y + dy < wrld.height()):
-                            # No need to check impossible moves
-                            if not wrld.wall_at(m.x + dx, m.y + dy):
-                                # Set move in wrld
-                                m.move(dx, dy)
-                                # Get new world
-                                (newwrld, events) = wrld.next()
-
-                                # find probability of actions taken
-                                p = self.get_probability(newwrld)
-
-                                # eval max node
-                                res = self.max_value(newwrld, depth + 1)
-                                v = v + (p * res)
-
-        return v
-
-    # Calculate max node for expectimax
-    # PARAM [World] wrld The World object to calculate the max node on
-    # PARAM [list] events List of events that happend in the world
-    # PARAM [int] depth Current depth of the expectimax
-    # PARAM [(int, int)] old_action Action that was taken to get to this world state
-    # RETURN [int, (int, int)] A score for the world and an action to take
-    def max_value(self, wrld, depth):
-
-        if self.game_over(wrld.events) or depth == self.max_depth:
-            return self.eval_state(wrld, depth)
+            return self.eval_stateMM(wrld, depth)
 
         v = float('-inf')
 
         # get first character on map
-        m = next(iter(wrld.characters.values()))[0]
+        c = next(iter(wrld.characters.values()))[0]
 
         #
         # Go through the possible 8-moves of the character
@@ -156,52 +139,121 @@ class Character(CharacterEntity):
         # Loop through delta x
         for dx in [-1, 0, 1]:
             # Avoid out-of-bound indexing
-            if (m.x + dx >= 0) and (m.x + dx < wrld.width()):
+            if (c.x+dx >= 0) and (c.x+dx < wrld.width()):
                 # Loop through delta y
                 for dy in [-1, 0, 1]:
                     # Make sure the character is moving
                     if (dx != 0) or (dy != 0):
                         # Avoid out-of-bound indexing
-                        if (m.y + dy >= 0) and (m.y + dy < wrld.height()):
+                        if (c.y+dy >=0) and (c.y+dy < wrld.height()):
                             # No need to check impossible moves
-                            if not wrld.wall_at(m.x + dx, m.y + dy):
+                            if not wrld.wall_at(c.x+dx, c.y+dy):# and not wrld.explosion_at(m.x+dx, m.y+dy):
+                                # Set move in wrld
+                                c.move(dx, dy)
+
+                                # Get new world
+                                (newwrld, events) = wrld.next()
+
+                                # alpha beta pruning logic
+                                min = self.min_value(newwrld, a, b, depth+1)
+
+                                if min > v:
+                                    v = min
+
+                                if v >= b: # prune
+                                    return v
+
+                                a = max(a, v)
+
+        return v
+
+    # Return the min value of a world state and the action to get to that state.
+    # PARAM [board.Board] board: the current world state
+    # PARAM [int] a: alpha value
+    # PARAM [int] b: beta value
+    # PARAM [int] depth: max depth of the search
+    # RETURN [int]: min value of the world state
+    def min_value(self, wrld, a, b, depth):
+        """The minvalue function for alpha beta search algorithm."""
+
+        # Game over or hit max depth
+        if self.game_over(wrld.events) or depth == self.max_depth:
+            return self.eval_stateMM(wrld, depth)
+
+        v = float('inf')
+
+        m = None
+        try:
+            m = next(iter(wrld.monsters.values()))[0]
+        except:
+            # there is no monster
+            max = self.max_value(wrld, a, b, depth+1)
+
+            return max
+
+        #
+        # Go through the possible 8-moves of the monster
+        #
+        # Loop through delta x
+        for dx in [-1, 0, 1]:
+            # Avoid out-of-bound indexing
+            if (m.x+dx >=0) and (m.x+dx < wrld.width()):
+                # Loop through delta y
+                for dy in [-1, 0, 1]:
+                    # Make sure the monster is moving
+                    if (dx != 0) or (dy != 0):
+                        # Avoid out-of-bound indexing
+                        if (m.y+dy >=0) and (m.y+dy < wrld.height()):
+                            # No need to check impossible moves
+                            if not wrld.wall_at(m.x+dx, m.y+dy):
                                 # Set move in wrld
                                 m.move(dx, dy)
                                 # Get new world
                                 (newwrld, events) = wrld.next()
 
-                                # eval chance node
-                                res = self.exp_value(newwrld, depth + 1)
+                                # alpha beta pruning logic
+                                max = self.max_value(newwrld, a, b, depth+1)
 
-                                # expectimax max part
-                                if res > v:
-                                    v = res
+                                if max < v:
+                                    v = max
+
+                                if v <= a: # prune
+                                    return v
+
+                                b = min(b, v)
 
         return v
 
-    # Get the probability of a world state.
-    # PARAM [World] wrld The world to calculate the probability for.
-    # RETURN [float] The probability of getting to this world state.
-    def get_probability(self, wrld):
-        # for now assume stupid monster all actions equaly likely to happen
-        m = next(iter(wrld.monsters.values()))[0]
+    # Gives a world state a score.
+    # PARAM [World] wrld World to calculate score for.
+    # PARAM [int] depth Current depth of expectimax search
+    # RETURN [float] Score for this world state
+    def eval_stateMM(self, wrld, depth):
 
-        # count number of possible moves around stupid monster
-        count = 0
-        for dx in [-1, 0, 1]:
-            # Avoid out-of-bound indexing
-            if (m.x + dx >= 0) and (m.x + dx < wrld.width()):
-                # Loop through delta y
-                for dy in [-1, 0, 1]:
-                    # Make sure the character is moving
-                    if (dx != 0) or (dy != 0):
-                        # Avoid out-of-bound indexing
-                        if (m.y + dy >= 0) and (m.y + dy < wrld.height()):
-                            # No need to check impossible moves
-                            if not wrld.wall_at(m.x + dx, m.y + dy):
-                                count += 1
+        for e in wrld.events:
+            # character dead, bad state
+            if (e.tpe == Event.BOMB_HIT_CHARACTER or
+                e.tpe == Event.CHARACTER_KILLED_BY_MONSTER):
+                    return -1000/depth
 
-        return (1 / count)
+            # character escaped, good state
+            if (e.tpe == Event.CHARACTER_FOUND_EXIT):
+                    return 1000/depth
+
+        c = next(iter(wrld.characters.values()))[0]
+
+        # get distance to monster
+        dist_m = 0
+        try:
+            m = next(iter(wrld.monsters.values()))[0]
+            dist_m = math.sqrt((m.x - c.x)**2 + (m.y - c.y)**2)
+
+        except Exception as ex:
+            pass
+
+        # dist_e = math.sqrt((wrld.exitcell[0] - c.x)**2 + (wrld.exitcell[1] - c.y)**2)
+
+        return dist_m
 
     # Check if the game has ended
     # PARAM [list] events List of world events
@@ -210,47 +262,12 @@ class Character(CharacterEntity):
 
         for e in events:
             if (e.tpe == Event.BOMB_HIT_CHARACTER or
-                    e.tpe == Event.CHARACTER_KILLED_BY_MONSTER or
-                    e.tpe == Event.CHARACTER_FOUND_EXIT):
+                e.tpe == Event.CHARACTER_KILLED_BY_MONSTER or
+                e.tpe == Event.CHARACTER_FOUND_EXIT):
 
-                if e.character.name == self.name:
                     return True
 
         return False
-
-    # Gives a world state a score.
-    # PARAM [World] wrld World to calculate score for.
-    # PARAM [list] events List of world events
-    # PARAM [int] depth Current depth of expectimax search
-    # RETURN [float] Score for this world state
-    def eval_state(self, wrld, depth):
-
-        for e in wrld.events:
-            # character dead, bad state
-            if (e.tpe == Event.BOMB_HIT_CHARACTER or
-                    e.tpe == Event.CHARACTER_KILLED_BY_MONSTER):
-
-                if e.character.name == self.name:
-                    return -1000 / depth
-
-            # character escaped, good state
-            if (e.tpe == Event.CHARACTER_FOUND_EXIT):
-                if e.character.name == self.name:
-                    return 1000 / depth
-
-        c = next(iter(wrld.characters.values()))[0]
-
-        dist_m = 0
-        try:
-            m = next(iter(wrld.monsters.values()))[0]
-            dist_m = math.sqrt((m.x - c.x) ** 2 + (m.y - c.y) ** 2)
-
-        except Exception as ex:
-            pass
-
-        # basically greedy best first search to move closer to exit
-        dist_e = math.sqrt((wrld.exitcell[0] - c.x) ** 2 + (wrld.exitcell[1] - c.y) ** 2)
-        return -dist_e
 
     # Do a* search
     # PARAM [World] wrld The initial World object to start the a* with
@@ -287,6 +304,7 @@ class Character(CharacterEntity):
                     frontier.put(nextmove, priority)
                     came_from[nextmove] = current
 
+
     # Heuristic for a* algorithm
     # PARAM [int, int] goal x, y coordinates of exit
     # PARAM [int, int] m x, y coordinates of the next move (the one we are calculating heuristic for)
@@ -298,6 +316,42 @@ class Character(CharacterEntity):
 
         # Euclidean distance
         return math.sqrt(dx * dx + dy * dy)
+
+
+    # Cost function for a* algorithm
+    # PARAM [int, int] nextm x, y coordinates of the next move (the one we are calculating cost for)
+    # PARAM [World] wrld The initial World object to calculate cost with
+    # RETURN [int] the real cost of the next move
+    def cost(self, nextm, wrld):
+
+        if wrld.wall_at(nextm[0], nextm[1]):
+            return 12  # bomb timer + explosion time
+        elif wrld.explosion_at(nextm[0], nextm[1]):
+            return float('inf') # don't kill yourself
+
+        # Do not stand in range of a bomb that is exploding in one turn
+        # Shouldn't ever do anything
+        # try:
+        #     b = next(iter(wrld.bombs.values()))[0]
+
+        #     dist_b = math.sqrt((b.x - n[0])**2 + (b.y - n[1])**2)
+
+        #     if(b.timer == 0 and
+        #         (b.x == n[0] or b.y == n[1]) and
+        #         dist_b <= 4):
+        #         return float('inf')
+        # except:
+        #     pass
+
+        # Don't path near monster
+        try:
+            m = next(iter(wrld.monsters.values()))[0]
+            if math.sqrt((nextm[0] - m.x)**2 + (nextm[1] - m.y)**2) < 5:
+                return float('inf')
+        except:
+            pass
+
+        return 1
 
     # Neighbor function for a* algorithm
     # PARAM [int, int] current x, y coordinates of current node location (not character location)
@@ -316,17 +370,3 @@ class Character(CharacterEntity):
                         if (current[1] + dy >= 0) and (current[1] + dy < wrld.height()):
                             neighbors.append((current[0] + dx, current[1] + dy))
         return neighbors
-
-    # Cost function for a* algorithm
-    # PARAM [int, int] nextm x, y coordinates of the next move (the one we are calculating cost for)
-    # PARAM [World] wrld The initial World object to calculate cost with
-    # RETURN [int] the real cost of the next move
-    def cost(self, nextm, wrld):
-        m = next(iter(wrld.monsters.values()))[0]
-        if (nextm[0] == m.x or nextm[0] == m.x - 1 or nextm[0] == m.x + 1) and (nextm[1] == m.y or nextm[1] == m.y - 1 or nextm[1] == m.y + 1):
-            return float('inf')
-
-        if wrld.wall_at(nextm[0], nextm[1]):
-            return float('inf')
-        else:
-            return 1

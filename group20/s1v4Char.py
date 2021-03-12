@@ -40,18 +40,15 @@ class Character(CharacterEntity):
             self.move(dx, dy)
 
             # place a bomb if a monster is in range
-            if dist_m < 5:
+            if dist_m < 4:
                 self.place_bomb()
         else:
             # Find path using a*
             path = self.astar(wrld)
 
-            # Find location of our character
-            meloc = next(iter(wrld.characters.values()))[0]
-
             # Find direction of movement
-            dx = path[1][0] - meloc.x
-            dy = path[1][1] - meloc.y
+            dx = path[1][0] - self.x
+            dy = path[1][1] - self.y
 
             # Find first wall in path
             wall = None
@@ -63,12 +60,12 @@ class Character(CharacterEntity):
             self.move(dx, dy)
 
             # wall in your path is in range of a bomb
-            try:
-                if (math.sqrt((wall[0] - self.x)**2 + (wall[1] - self.y)**2) <= 4 and
-                    (wall[0] == self.x or wall[1] == self.y)):
-                    self.place_bomb()
-            except:
-                pass
+            # try:
+            #     if (math.sqrt((wall[0] - self.x)**2 + (wall[1] - self.y)**2) <= 4 and
+            #         (wall[0] == self.x or wall[1] == self.y)):
+            #         self.place_bomb()
+            # except:
+            #     pass
 
             # place a bomb if there is a wall in your path
             if(wrld.wall_at(self.x + dx, self.y + dy)):
@@ -349,7 +346,7 @@ class Character(CharacterEntity):
         # Don't path near monster
         try:
             m = next(iter(wrld.monsters.values()))[0]
-            if math.sqrt((nextm[0] - m.x)**2 + (nextm[1] - m.y)**2) < 5:
+            if math.sqrt((nextm[0] - m.x)**2 + (nextm[1] - m.y)**2) < 6:
                 return float('inf')
         except:
             pass
