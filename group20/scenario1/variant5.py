@@ -10,8 +10,8 @@ from monsters.stupid_monster import StupidMonster
 from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
-from testcharacter import TestCharacter
+sys.path.insert(1, '../group20')
+from s1v4Char import Character
 
 # Create the game
 random.seed(123) # TODO Change this if you want different random choices
@@ -27,10 +27,11 @@ g.add_monster(SelfPreservingMonster("aggressive", # name
 ))
 
 # TODO Add your character
-g.add_character(TestCharacter("me", # name
+g.add_character(Character("me", # name
                               "C",  # avatar
-                              0, 0  # position
+                              0, 0,  # position
+                              5
 ))
 
 # Run!
-g.go()
+g.go(1)
