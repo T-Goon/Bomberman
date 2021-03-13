@@ -325,7 +325,7 @@ class Character(CharacterEntity):
     def cost(self, nextm, wrld):
 
         if wrld.wall_at(nextm[0], nextm[1]):
-            return 12 # bomb timer + explosion time
+            return 12  # bomb timer + explosion time
         elif wrld.explosion_at(nextm[0], nextm[1]):
             return float('inf') # don't kill yourself
 

@@ -34,13 +34,13 @@ class Character(CharacterEntity):
         ex = wrld.explosions.values()
 
         # use minimax to aviod monster, death, and make some progress
-        if(dist_m < 3 or len(b) > 0 or len(ex) > 0):
+        if(dist_m < 4 or len(b) > 0 or len(ex) > 0):
             dx, dy = self.minimax(wrld)
 
             self.move(dx, dy)
 
             # place a bomb if a monster is in range
-            if dist_m < 5:
+            if dist_m < 3:
                 self.place_bomb()
         else:
             # Find path using a*
@@ -60,12 +60,12 @@ class Character(CharacterEntity):
             self.move(dx, dy)
 
             # wall in your path is in range of a bomb
-            try:
-                if (math.sqrt((wall[0] - self.x)**2 + (wall[1] - self.y)**2) <= 4 and
-                    (wall[0] == self.x or wall[1] == self.y)):
-                    self.place_bomb()
-            except:
-                pass
+            # try:
+            #     if (math.sqrt((wall[0] - self.x)**2 + (wall[1] - self.y)**2) <= 4 and
+            #         (wall[0] == self.x or wall[1] == self.y)):
+            #         self.place_bomb()
+            # except:
+            #     pass
 
             # place a bomb if there is a wall in your path
             if(wrld.wall_at(self.x + dx, self.y + dy)):
