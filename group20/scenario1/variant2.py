@@ -9,7 +9,7 @@ from game import Game
 from monsters.stupid_monster import StupidMonster
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
+sys.path.insert(1, '../group20')
 # from testcharacter import TestCharacter
 from s1v2Char import Character
 

@@ -34,7 +34,7 @@ class Character(CharacterEntity):
         ex = wrld.explosions.values()
 
         # use minimax to aviod monster, death, and make some progress
-        if(dist_m < 5 or len(b) > 0 or len(ex) > 0):
+        if(dist_m < 3 or len(b) > 0 or len(ex) > 0):
             dx, dy = self.minimax(wrld)
 
             self.move(dx, dy)
@@ -238,8 +238,7 @@ class Character(CharacterEntity):
                     return -1000/depth
 
             # character escaped, good state
-            if (e.tpe == Event.CHARACTER_FOUND_EXIT or
-                e.tpe == Event.BOMB_HIT_MONSTER):
+            if (e.tpe == Event.CHARACTER_FOUND_EXIT):
                     return 1000/depth
 
         c = next(iter(wrld.characters.values()))[0]
