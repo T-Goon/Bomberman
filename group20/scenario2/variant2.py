@@ -9,8 +9,10 @@ from game import Game
 from monsters.stupid_monster import StupidMonster
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
+
+sys.path.insert(1, '../group20')
 from s2v2Char import Character
+
 
 # Create the game
 #random.seed(123) # TODO Change this if you want different random choices
@@ -24,7 +26,7 @@ g.add_monster(StupidMonster("stupid", # name
 g.add_character(Character("me", # name
                               "C",  # avatar
                               0, 0,  # position
-                          5
+                              5
 ))
 
 # Run!

@@ -12,7 +12,7 @@ from game import Game
 sys.path.insert(1, '../group20')
 
 # Uncomment this if you want the empty test character
-from testcharacter import TestCharacter
+from testcharacter import Character
 
 random.seed(123)
 
@@ -22,31 +22,27 @@ random.seed(123)
 # Create the game
 g = Game.fromfile('map2.txt')
 
-from monsters.stupid_monster import StupidMonster
-g.add_monster(StupidMonster("stupid", # name
-                            "S",      # avatar
-                            0, 0      # position
-))
-
-# g.add_monster(StupidMonster("stupid2", # name
+# from monsters.stupid_monster import StupidMonster
+# g.add_monster(StupidMonster("stupid", # name
 #                             "S",      # avatar
-#                             7, 0      # position
+#                             0, 0      # position
 # ))
 
-# from monsters.selfpreserving_monster import SelfPreservingMonster
-# g.add_monster(SelfPreservingMonster("aggressive", # name
-#                                     "A",          # avatar
-#                                     3, 13,        # position
-#                                     2             # detection range
-# ))
+
+from monsters.selfpreserving_monster import SelfPreservingMonster
+g.add_monster(SelfPreservingMonster("aggressive", # name
+                                    "A",          # avatar
+                                    0, 0,        # position
+                                    2             # detection range
+))
 
 # TODO Add your character
 
 # Uncomment this if you want the test character
-g.add_character(TestCharacter("me", # name
+g.add_character(Character("me", # name
                               "C",  # avatar
-                              2, 2,  # position
-                              5
+                              1, 1,  # position
+                              4
 ))
 
 # Uncomment this if you want the interactive character
@@ -58,7 +54,7 @@ g.add_character(TestCharacter("me", # name
 # Run!
 
 # Use this if you want to press ENTER to continue at each step
-# g.go(0)
+g.go(0)
 
 # Use this if you want to proceed automatically
-g.go(1)
+# g.go(1)
