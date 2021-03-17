@@ -12,7 +12,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 # TODO This is your code!
 sys.path.insert(1, '../group20')
 
-from Character3 import Character
+from Character3One import Character
 
 # Create the game
 # random.seed(123)

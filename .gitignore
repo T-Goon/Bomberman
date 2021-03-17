@@ -1,3 +1,5 @@
 /bomberman/__pycache__
 /bomberman/monsters/__pycache__
 /group20/__pycache__
+*.txt
+/group20/scenario1/map2.txt
