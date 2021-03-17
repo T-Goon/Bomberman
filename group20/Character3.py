@@ -3,15 +3,12 @@
 import math
 import sys
 import queue
-
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
-from sensed_world import SensedWorld
 from colorama import Fore, Back
 
 from events import Event
-
 
 class Character(CharacterEntity):
 
@@ -24,24 +21,19 @@ class Character(CharacterEntity):
     def do(self, wrld):
 
         # Calculate distance to the monster
-        try:
-            m = next(iter(wrld.monsters.values()))[0]
-
-            dist_m = math.sqrt((m.x - self.x) ** 2 + (m.y - self.y) ** 2)
-        except Exception as e:
-            dist_m = float('inf')
+        dist_m = self.dist_monster(wrld)
 
         b = wrld.bombs.values()
         ex = wrld.explosions.values()
 
         # use minimax to aviod monster, death, and make some progress
-        if (dist_m < 5 or len(b) > 0 or len(ex) > 0):
+        if(dist_m < 4 or len(b) > 0 or len(ex) > 0):
             dx, dy = self.minimax(wrld)
 
             self.move(dx, dy)
 
             # place a bomb if a monster is in range
-            if dist_m < 5:
+            if dist_m < 4:
                 self.place_bomb()
         else:
             # Find path using a*
@@ -51,25 +43,10 @@ class Character(CharacterEntity):
             dx = path[1][0] - self.x
             dy = path[1][1] - self.y
 
-            # Find first wall in path
-            wall = None
-            for i in range(1, len(path)):
-                if wrld.wall_at(path[i][0], path[i][1]):
-                    wall = (path[i][0], path[i][1])
-                    break
-
             self.move(dx, dy)
 
-            # wall in your path is in range of a bomb
-            try:
-                if (math.sqrt((wall[0] - self.x) ** 2 + (wall[1] - self.y) ** 2) <= 4 and
-                        (wall[0] == self.x or wall[1] == self.y)):
-                    self.place_bomb()
-            except:
-                pass
-
             # place a bomb if there is a wall in your path
-            if (wrld.wall_at(self.x + dx, self.y + dy)):
+            if(wrld.wall_at(self.x + dx, self.y + dy)):
                 self.place_bomb()
 
     # Do minimax search
@@ -85,15 +62,15 @@ class Character(CharacterEntity):
 
         for dx in [-1, 0, 1]:
             # Avoid out-of-bound indexing
-            if (c.x + dx >= 0) and (c.x + dx < wrld.width()):
+            if (c.x+dx >= 0) and (c.x+dx < wrld.width()):
                 # Loop through delta y
                 for dy in [-1, 0, 1]:
                     # Make sure the character is moving
                     if (dx != 0) or (dy != 0):
                         # Avoid out-of-bound indexing
-                        if (c.y + dy >= 0) and (c.y + dy < wrld.height()):
+                        if (c.y+dy >=0) and (c.y+dy < wrld.height()):
                             # No need to check impossible moves
-                            if not wrld.wall_at(c.x + dx, c.y + dy):  # and not wrld.explosion_at(m.x+dx, m.y+dy):
+                            if not wrld.wall_at(c.x+dx, c.y+dy):# and not wrld.explosion_at(m.x+dx, m.y+dy):
                                 # Set move in wrld
                                 c.move(dx, dy)
 
@@ -112,6 +89,7 @@ class Character(CharacterEntity):
                                         max = val
                                         xmax = dx
                                         ymax = dy
+
 
         return xmax, ymax
 
@@ -139,15 +117,15 @@ class Character(CharacterEntity):
         # Loop through delta x
         for dx in [-1, 0, 1]:
             # Avoid out-of-bound indexing
-            if (c.x + dx >= 0) and (c.x + dx < wrld.width()):
+            if (c.x+dx >= 0) and (c.x+dx < wrld.width()):
                 # Loop through delta y
                 for dy in [-1, 0, 1]:
                     # Make sure the character is moving
                     if (dx != 0) or (dy != 0):
                         # Avoid out-of-bound indexing
-                        if (c.y + dy >= 0) and (c.y + dy < wrld.height()):
+                        if (c.y+dy >=0) and (c.y+dy < wrld.height()):
                             # No need to check impossible moves
-                            if not wrld.wall_at(c.x + dx, c.y + dy):  # and not wrld.explosion_at(m.x+dx, m.y+dy):
+                            if not wrld.wall_at(c.x+dx, c.y+dy):# and not wrld.explosion_at(m.x+dx, m.y+dy):
                                 # Set move in wrld
                                 c.move(dx, dy)
 
@@ -155,12 +133,12 @@ class Character(CharacterEntity):
                                 (newwrld, events) = wrld.next()
 
                                 # alpha beta pruning logic
-                                min = self.min_value(newwrld, a, b, depth + 1)
+                                min = self.min_value(newwrld, a, b, depth+1)
 
                                 if min > v:
                                     v = min
 
-                                if v >= b:  # prune
+                                if v >= b: # prune
                                     return v
 
                                 a = max(a, v)
@@ -182,45 +160,46 @@ class Character(CharacterEntity):
 
         v = float('inf')
 
-        m = None
-        try:
-            m = next(iter(wrld.monsters.values()))[0]
-        except:
+        # Empty dictionary
+        if not wrld.monsters:
             # there is no monster
-            max = self.max_value(wrld, a, b, depth + 1)
+            max = self.max_value(wrld, a, b, depth+1)
 
             return max
+        else:
+            monsters = iter(wrld.monsters.values())
 
-        #
-        # Go through the possible 8-moves of the monster
-        #
-        # Loop through delta x
-        for dx in [-1, 0, 1]:
-            # Avoid out-of-bound indexing
-            if (m.x + dx >= 0) and (m.x + dx < wrld.width()):
-                # Loop through delta y
-                for dy in [-1, 0, 1]:
-                    # Make sure the monster is moving
-                    if (dx != 0) or (dy != 0):
-                        # Avoid out-of-bound indexing
-                        if (m.y + dy >= 0) and (m.y + dy < wrld.height()):
-                            # No need to check impossible moves
-                            if not wrld.wall_at(m.x + dx, m.y + dy):
-                                # Set move in wrld
-                                m.move(dx, dy)
-                                # Get new world
-                                (newwrld, events) = wrld.next()
+        for m in monsters:
+            #
+            # Go through the possible 8-moves of the monster
+            #
+            # Loop through delta x
+            for dx in [-1, 0, 1]:
+                # Avoid out-of-bound indexing
+                if (m[0].x+dx >=0) and (m[0].x+dx < wrld.width()):
+                    # Loop through delta y
+                    for dy in [-1, 0, 1]:
+                        # Make sure the monster is moving
+                        if (dx != 0) or (dy != 0):
+                            # Avoid out-of-bound indexing
+                            if (m[0].y+dy >=0) and (m[0].y+dy < wrld.height()):
+                                # No need to check impossible moves
+                                if not wrld.wall_at(m[0].x+dx, m[0].y+dy):
+                                    # Set move in wrld
+                                    m[0].move(dx, dy)
+                                    # Get new world
+                                    (newwrld, events) = wrld.next()
 
-                                # alpha beta pruning logic
-                                max = self.max_value(newwrld, a, b, depth + 1)
+                                    # alpha beta pruning logic
+                                    max = self.max_value(newwrld, a, b, depth+1)
 
-                                if max < v:
-                                    v = max
+                                    if max < v:
+                                        v = max
 
-                                if v <= a:  # prune
-                                    return v
+                                    if v <= a: # prune
+                                        return v
 
-                                b = min(b, v)
+                                    b = min(b, v)
 
         return v
 
@@ -233,27 +212,37 @@ class Character(CharacterEntity):
         for e in wrld.events:
             # character dead, bad state
             if (e.tpe == Event.BOMB_HIT_CHARACTER or
-                    e.tpe == Event.CHARACTER_KILLED_BY_MONSTER):
-                return -1000 / depth
+                e.tpe == Event.CHARACTER_KILLED_BY_MONSTER):
+                    return -1000/depth
 
             # character escaped, good state
             if (e.tpe == Event.CHARACTER_FOUND_EXIT):
-                return 1000 / depth
-
-        c = next(iter(wrld.characters.values()))[0]
+                    return 1000/depth
 
         # get distance to monster
-        dist_m = 0
-        try:
-            m = next(iter(wrld.monsters.values()))[0]
-            dist_m = math.sqrt((m.x - c.x) ** 2 + (m.y - c.y) ** 2)
+        if not wrld.monsters:
+            return 0
+        else:
+            return self.dist_monster(wrld)
 
-        except Exception as ex:
-            pass
+    # Get the distance to the closest monster
+    # PARAM [World] world: current world object
+    # RETURN [float] Summed total distance to all monsters or inf if no monsters
+    def dist_monster(self, wrld):
+        dist_m = float('inf')
 
-        # dist_e = math.sqrt((wrld.exitcell[0] - c.x)**2 + (wrld.exitcell[1] - c.y)**2)
+        monsters = iter(wrld.monsters.values())
+        c = next(iter(wrld.characters.values()))[0]
 
-        return dist_m
+        for m in monsters:
+            dist = math.sqrt((m[0].x - c.x)**2 + (m[0].y - c.y)**2)
+            if dist < dist_m:
+                dist_m = dist
+
+        if dist_m == 0:
+            return float('inf')
+        else:
+            return dist_m
 
     # Check if the game has ended
     # PARAM [list] events List of world events
@@ -262,9 +251,10 @@ class Character(CharacterEntity):
 
         for e in events:
             if (e.tpe == Event.BOMB_HIT_CHARACTER or
-                    e.tpe == Event.CHARACTER_KILLED_BY_MONSTER or
-                    e.tpe == Event.CHARACTER_FOUND_EXIT):
-                return True
+                e.tpe == Event.CHARACTER_KILLED_BY_MONSTER or
+                e.tpe == Event.CHARACTER_FOUND_EXIT):
+
+                    return True
 
         return False
 
@@ -303,6 +293,7 @@ class Character(CharacterEntity):
                     frontier.put(nextmove, priority)
                     came_from[nextmove] = current
 
+
     # Heuristic for a* algorithm
     # PARAM [int, int] goal x, y coordinates of exit
     # PARAM [int, int] m x, y coordinates of the next move (the one we are calculating heuristic for)
@@ -315,37 +306,25 @@ class Character(CharacterEntity):
         # Euclidean distance
         return math.sqrt(dx * dx + dy * dy)
 
+
     # Cost function for a* algorithm
     # PARAM [int, int] nextm x, y coordinates of the next move (the one we are calculating cost for)
     # PARAM [World] wrld The initial World object to calculate cost with
     # RETURN [int] the real cost of the next move
     def cost(self, nextm, wrld):
+
         if wrld.wall_at(nextm[0], nextm[1]):
-            return 12  # bomb timer + explosion time
+            return 12 # bomb timer + explosion time
         elif wrld.explosion_at(nextm[0], nextm[1]):
-            return float('inf')  # don't kill yourself
-
-        # Do not stand in range of a bomb that is exploding in one turn
-        # Shouldn't ever do anything
-        # try:
-        #     b = next(iter(wrld.bombs.values()))[0]
-
-        #     dist_b = math.sqrt((b.x - n[0])**2 + (b.y - n[1])**2)
-
-        #     if(b.timer == 0 and
-        #         (b.x == n[0] or b.y == n[1]) and
-        #         dist_b <= 4):
-        #         return float('inf')
-        # except:
-        #     pass
+            return float('inf') # don't kill yourself
 
         # Don't path near monster
-        try:
-            m = next(iter(wrld.monsters.values()))[0]
-            if math.sqrt((nextm[0] - m.x) ** 2 + (nextm[1] - m.y) ** 2) < 5:
+        monsters = iter(wrld.monsters.values())
+
+        for m in monsters:
+            dist = math.sqrt((nextm[0] - m[0].x)**2 + (nextm[1] - m[0].y)**2)
+            if dist < 6:
                 return float('inf')
-        except:
-            pass
 
         return 1
 

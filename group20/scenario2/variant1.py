@@ -7,15 +7,14 @@ sys.path.insert(1, '..')
 from game import Game
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
+sys.path.insert(1, '../group20')
 # from testcharacter import TestCharacter
-from s2v1CharTemp import Character
+from Character2 import Character
 
 
 # Create the game
 g = Game.fromfile('map.txt')
 
-# TODO Add your character
 g.add_character(Character("me", # name
                               "C",  # avatar
                               0, 0,  # position
