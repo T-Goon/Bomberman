@@ -1,3 +1,47 @@
+# Bomberman
+
+A AI was created to win different scenarios of the Escape mode of a Bomberman-like game. In Escape mode the character has to reach exit within a time limit, without dieing to the enemies. There are 2 scenarios with 5 varients each. More details on the varients can be found in "/group20/scenario[1/2]/README.md".
+
+More details on the game itself or the assignment specification for this project can be found further into this file or in "CS4341_2021C_Project.pdf".
+
+![image](https://user-images.githubusercontent.com/32044950/120857818-dc0f2380-c54f-11eb-8ade-da7e1d0d2f7f.png)
+
+![image](https://user-images.githubusercontent.com/32044950/120857899-f943f200-c54f-11eb-94be-5279d0ad4c21.png)
+
+# AI Controlled Character
+
+A few different algoritms were used in different situations to create the AI controlled character.
+
+## General Pathfinding
+
+To make the character pathfind to the exit tile of the map the A* algoritm was used. If there are walls blocking the exit to the path as in scenario2 of this project
+the AI controlled character places a bomb to destroy the wall before proceeding.
+
+![image](https://user-images.githubusercontent.com/32044950/120856145-61dd9f80-c54d-11eb-99e6-adc2692b9594.png)
+
+## Handling Monsters
+
+When the character was within a certian radius of a hostile monster the minimax algorithm was used.
+The strategy used with this algorithm allowed the AI controlled character to survive or kill any monsters on the map in about 80% of games.
+
+The general strategy here was to place a bomb as soon as any monster was within a specified radius of the character and then run as far away from any monsters as possible.
+
+## AI Character Versions
+
+### Character 1
+
+An AI that only uses A* to move to the exit. Only used in scenario1, varient1.
+
+### Character 2
+
+An AI that uses both A* and minimax. Designed to play on a map with only one monster on it. Used in scenario 1, varient 2-4 and scenario 2, varients 1-4.
+
+### Character 3 One and Two
+
+An AI that the same as Character to with a few tweaks that allow it to handle multiple monsters on one map and a few changes to different constant values. Used in scenario 1, varient 5 and scenario 2, varient 5.
+
+For more information on the development process of the AI or the logic behind the AI look in "Project_Report.pdf".
+
 # Required Software #
 
 To run Bomberman, you'll need Python 3 with the `colorama` and `pygame`
