@@ -34,7 +34,7 @@ An AI that only uses A* to move to the exit. Only used in scenario1, varient1.
 
 ### Character 2
 
-An AI that uses both A* and minimax. Designed to play on a map with only one monster on it. Used in scenario 1, varient 2-4 and scenario 2, varients 1-4.
+An AI that uses both A* and minimax with alpha beta pruning. Designed to play on a map with only one monster on it. Used in scenario 1, varient 2-4 and scenario 2, varients 1-4.
 
 ### Character 3 One and Two
 
